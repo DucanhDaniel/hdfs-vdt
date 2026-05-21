@@ -159,6 +159,8 @@ services:
     container_name: datanode1
     hostname: datanode1
     networks: [hdfs-ha-net]
+    ports:
+      - "9864:9864"
     depends_on:
       namenode1:
         condition: service_healthy
@@ -174,13 +176,15 @@ services:
     container_name: datanode2
     hostname: datanode2
     networks: [hdfs-ha-net]
+    ports:
+      - "9865:9865"
     depends_on:
       namenode1:
         condition: service_healthy
     volumes:
       - dn2_data:/hadoop/dfs/data
     command: >
-      bash -c "service ssh start && hdfs datanode"
+      bash -c "service ssh start && hdfs datanode -Ddfs.datanode.http.address=0.0.0.0:9865"
 
 # ─────────────────────────────────────────────
 # VOLUMES
