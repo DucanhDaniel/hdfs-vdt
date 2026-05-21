@@ -1,0 +1,31 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    openjdk-11-jdk \
+    wget \
+    ssh \
+    curl \
+    netcat \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV HADOOP_VERSION=3.4.3
+ENV HADOOP_HOME=/opt/hadoop
+ENV PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+
+RUN wget -q https://downloads.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz \
+    && tar -xzf hadoop-${HADOOP_VERSION}.tar.gz -C /opt/ \
+    && mv /opt/hadoop-${HADOOP_VERSION} $HADOOP_HOME \
+    && rm hadoop-${HADOOP_VERSION}.tar.gz
+
+# SSH không cần password
+RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa \
+    && cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys \
+    && chmod 0600 ~/.ssh/authorized_keys
+
+COPY config/core-site.xml  $HADOOP_HOME/etc/hadoop/core-site.xml
+COPY config/hdfs-site.xml  $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+COPY config/hadoop-env.sh  $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+
+RUN mkdir -p /hadoop/dfs/name /hadoop/dfs/data /hadoop/dfs/journal /hadoop/tmp
+
+EXPOSE 9000 9870 8485 8480

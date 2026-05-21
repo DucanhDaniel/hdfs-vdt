@@ -1,0 +1,199 @@
+version: "3.8"
+
+networks:
+  hdfs-ha-net:
+    driver: bridge
+
+# ─────────────────────────────────────────────
+# ZOOKEEPER QUORUM (3 node)
+# ─────────────────────────────────────────────
+services:
+
+  zk1:
+    image: zookeeper:3.8
+    container_name: zk1
+    hostname: zk1
+    networks: [hdfs-ha-net]
+    environment:
+      ZOO_MY_ID: 1
+    volumes:
+      - zk1_data:/data
+      - ./config/zoo.cfg:/conf/zoo.cfg:ro
+
+  zk2:
+    image: zookeeper:3.8
+    container_name: zk2
+    hostname: zk2
+    networks: [hdfs-ha-net]
+    environment:
+      ZOO_MY_ID: 2
+    volumes:
+      - zk2_data:/data
+      - ./config/zoo.cfg:/conf/zoo.cfg:ro
+
+  zk3:
+    image: zookeeper:3.8
+    container_name: zk3
+    hostname: zk3
+    networks: [hdfs-ha-net]
+    environment:
+      ZOO_MY_ID: 3
+    volumes:
+      - zk3_data:/data
+      - ./config/zoo.cfg:/conf/zoo.cfg:ro
+
+# ─────────────────────────────────────────────
+# JOURNALNODE QUORUM (3 node)
+# ─────────────────────────────────────────────
+
+  jn1:
+    build:
+      context: .
+      dockerfile: Dockerfile.hadoop
+    container_name: jn1
+    hostname: jn1
+    networks: [hdfs-ha-net]
+    volumes:
+      - jn1_data:/hadoop/dfs/journal
+    command: >
+      bash -c "service ssh start && hdfs journalnode"
+
+  jn2:
+    build:
+      context: .
+      dockerfile: Dockerfile.hadoop
+    container_name: jn2
+    hostname: jn2
+    networks: [hdfs-ha-net]
+    volumes:
+      - jn2_data:/hadoop/dfs/journal
+    command: >
+      bash -c "service ssh start && hdfs journalnode"
+
+  jn3:
+    build:
+      context: .
+      dockerfile: Dockerfile.hadoop
+    container_name: jn3
+    hostname: jn3
+    networks: [hdfs-ha-net]
+    volumes:
+      - jn3_data:/hadoop/dfs/journal
+    command: >
+      bash -c "service ssh start && hdfs journalnode"
+
+# ─────────────────────────────────────────────
+# NAMENODE 1 — Active (khởi tạo đầu tiên)
+# ─────────────────────────────────────────────
+
+  namenode1:
+    build:
+      context: .
+      dockerfile: Dockerfile.hadoop
+    container_name: namenode1
+    hostname: namenode1
+    networks: [hdfs-ha-net]
+    ports:
+      - "9870:9870"   # Web UI NN1
+      - "9000:9000"   # RPC
+    depends_on: [zk1, zk2, zk3, jn1, jn2, jn3]
+    volumes:
+      - nn1_data:/hadoop/dfs/name
+    command: |
+      bash -c "
+        service ssh start ;
+        echo 'Chờ JournalNode sẵn sàng...' ;
+        sleep 15 ;
+        if [ ! -f /hadoop/dfs/name/current/VERSION ]; then
+          echo 'Format NameNode lần đầu...' ;
+          hdfs namenode -format -clusterId mycluster-1 -force -nonInteractive ;
+        fi ;
+        echo 'Khởi tạo ZooKeeper failover controller...' ;
+        hdfs zkfc -formatZK -force ;
+        hdfs namenode &
+        hdfs zkfc
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://namenode1:9870"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+# ─────────────────────────────────────────────
+# NAMENODE 2 — Standby
+# ─────────────────────────────────────────────
+
+  namenode2:
+    build:
+      context: .
+      dockerfile: Dockerfile.hadoop
+    container_name: namenode2
+    hostname: namenode2
+    networks: [hdfs-ha-net]
+    ports:
+      - "9871:9870"   # Web UI NN2
+    depends_on:
+      namenode1:
+        condition: service_healthy
+    volumes:
+      - nn2_data:/hadoop/dfs/name
+    command: >
+      bash -c "
+        service ssh start &&
+        if [ ! -f /hadoop/dfs/name/current/VERSION ]; then
+          echo 'Bootstrap Standby NameNode từ Active...' &&
+          hdfs namenode -bootstrapStandby -force -nonInteractive
+        fi &&
+        hdfs namenode &
+        hdfs zkfc
+      "
+
+# ─────────────────────────────────────────────
+# DATANODE
+# ─────────────────────────────────────────────
+
+  datanode1:
+    build:
+      context: .
+      dockerfile: Dockerfile.hadoop
+    container_name: datanode1
+    hostname: datanode1
+    networks: [hdfs-ha-net]
+    depends_on:
+      namenode1:
+        condition: service_healthy
+    volumes:
+      - dn1_data:/hadoop/dfs/data
+    command: >
+      bash -c "service ssh start && hdfs datanode"
+
+  datanode2:
+    build:
+      context: .
+      dockerfile: Dockerfile.hadoop
+    container_name: datanode2
+    hostname: datanode2
+    networks: [hdfs-ha-net]
+    depends_on:
+      namenode1:
+        condition: service_healthy
+    volumes:
+      - dn2_data:/hadoop/dfs/data
+    command: >
+      bash -c "service ssh start && hdfs datanode"
+
+# ─────────────────────────────────────────────
+# VOLUMES
+# ─────────────────────────────────────────────
+
+volumes:
+  zk1_data:
+  zk2_data:
+  zk3_data:
+  jn1_data:
+  jn2_data:
+  jn3_data:
+  nn1_data:
+  nn2_data:
+  dn1_data:
+  dn2_data:

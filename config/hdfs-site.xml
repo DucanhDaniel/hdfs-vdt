@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- ==================== HA Cluster Setup ==================== -->
+
+  <!-- Tên logical cluster (khớp với fs.defaultFS) -->
+  <property>
+    <name>dfs.nameservices</name>
+    <value>mycluster</value>
+  </property>
+
+  <!-- Hai NameNode trong cluster -->
+  <property>
+    <name>dfs.ha.namenodes.mycluster</name>
+    <value>nn1,nn2</value>
+  </property>
+
+  <!-- RPC address của từng NameNode -->
+  <property>
+    <name>dfs.namenode.rpc-address.mycluster.nn1</name>
+    <value>namenode1:9000</value>
+  </property>
+  <property>
+    <name>dfs.namenode.rpc-address.mycluster.nn2</name>
+    <value>namenode2:9000</value>
+  </property>
+
+  <!-- HTTP address (Web UI) -->
+  <property>
+    <name>dfs.namenode.http-address.mycluster.nn1</name>
+    <value>namenode1:9870</value>
+  </property>
+  <property>
+    <name>dfs.namenode.http-address.mycluster.nn2</name>
+    <value>namenode2:9870</value>
+  </property>
+
+  <!-- ==================== JournalNode ==================== -->
+
+  <!-- Địa chỉ 3 JournalNode — edit log được ghi đồng thời lên cả 3 -->
+  <property>
+    <name>dfs.namenode.shared.edits.dir</name>
+    <value>qjournal://jn1:8485;jn2:8485;jn3:8485/mycluster</value>
+  </property>
+
+  <!-- Thư mục lưu dữ liệu JournalNode -->
+  <property>
+    <name>dfs.journalnode.edits.dir</name>
+    <value>/hadoop/dfs/journal</value>
+  </property>
+
+  <!-- ==================== Automatic Failover ==================== -->
+
+  <!-- Bật automatic failover qua ZKFC -->
+  <property>
+    <name>dfs.ha.automatic-failover.enabled</name>
+    <value>true</value>
+  </property>
+
+  <!-- Fencing: đảm bảo Active cũ bị cô lập trước khi Standby lên Active -->
+  <property>
+    <name>dfs.ha.fencing.methods</name>
+    <value>shell(/bin/true)</value>
+  </property>
+
+  <!-- ==================== Proxy Provider ==================== -->
+
+  <!-- Client tự động tìm NameNode đang Active -->
+  <property>
+    <name>dfs.client.failover.proxy.provider.mycluster</name>
+    <value>org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider</value>
+  </property>
+
+  <!-- ==================== Storage ==================== -->
+
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>/hadoop/dfs/name</value>
+  </property>
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>/hadoop/dfs/data</value>
+  </property>
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>dfs.permissions.enabled</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>dfs.webhdfs.enabled</name>
+    <value>true</value>
+  </property>
+
+</configuration>
