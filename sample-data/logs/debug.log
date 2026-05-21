@@ -1,0 +1,4 @@
+DEBUG init config loaded
+DEBUG connected to zookeeper
+DEBUG hdfs namenode: active
+DEBUG ready to serve requests

@@ -1,0 +1,4 @@
+2024-01-01 08:00:01 INFO  App started
+2024-01-01 08:01:22 INFO  Processing batch job
+2024-01-01 08:05:44 WARN  Slow query detected: 2300ms
+2024-01-01 08:10:00 INFO  Batch completed: 1500 records

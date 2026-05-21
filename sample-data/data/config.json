@@ -1,0 +1,6 @@
+{
+  "app": "hdfs-demo",
+  "version": "1.0.0",
+  "maxRetries": 3,
+  "timeout": 5000
+}

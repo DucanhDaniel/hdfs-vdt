@@ -1,0 +1,4 @@
+2024-01-02 08:00:03 INFO  App started
+2024-01-02 09:15:30 ERROR NullPointerException at OrderService.java:142
+2024-01-02 09:15:31 INFO  Retrying... attempt 1/3
+2024-01-02 09:15:35 INFO  Retry successful
